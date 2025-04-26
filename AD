@@ -1,0 +1,21 @@
+import pandas as pd
+from scipy.stats import chi2_contingency
+
+
+df1 = pd.read_csv('data.csv', sep=',', skipinitialspace=True)
+
+df = df1.dropna()
+df.columns = df.columns.str.lower().str.replace(" ", "_")
+
+df['ингредиент_кат'] = df['ингредиент_1'].apply(lambda x: 'менее_270' if x <= 270 else 'более_270')
+ans = df[['ингредиент_кат', 'брак']]
+
+contingency_table = pd.crosstab(ans['ингредиент_кат'], ans['брак'])
+
+chi2, _, _, _ = chi2_contingency(contingency_table)
+n = contingency_table.sum().sum()
+phi2 = chi2 / n
+r, k = contingency_table.shape
+cramers_v = (phi2 / min(k - 1, r - 1)) ** 0.5
+
+print(round(cramers_v, 4))
