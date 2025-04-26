@@ -1,0 +1,45 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+df = pd.read_csv('data.csv', sep=',', skipinitialspace=True, decimal=',')
+df.columns = df.columns.str.lower().str.replace(" ", "_")
+
+
+def categorize_year(year):
+    if year <= 1980:
+        return 'раритет'
+    elif 1980 < year <= 2010:
+        return 'старые'
+    elif 2010 < year <= 2020:
+        return 'массовые'
+    else:
+        return 'современные'
+
+
+df['agee'] = df['registrationyear'].apply(categorize_year)
+
+brand = input()
+df = df[(df['brand'] == brand) & (df['power'] > 30) & (df['price'] > 0)]
+
+plt.figure(figsize=(11, 4))
+
+plt.subplot(1, 3, 1)
+df['agee'].value_counts().plot.pie(autopct="%1.1f%%")
+plt.ylabel('')
+
+plt.subplot(1, 3, 2)
+sns.histplot(df['price'], bins=20, kde=True)
+plt.xlabel('Цена', fontsize=13)
+plt.ylabel('')
+
+plt.subplot(1, 3, 3)
+sns.scatterplot(x=df['power'], y=df['price'])
+plt.xlabel('Мощность', fontsize=13)
+plt.ylabel('')
+
+plt.suptitle('Исследование данных по моделям автомобилей', fontsize=16, y=1.01)
+
+plt.subplots_adjust(wspace=0.2)
+plt.savefig('target_6_5.png')
