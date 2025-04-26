@@ -1,0 +1,53 @@
+import pandas as pd
+import numpy as np
+from scipy.stats import shapiro, ttest_ind, mannwhitneyu
+
+
+df = pd.read_csv('data.csv', sep=';', skipinitialspace=True, decimal=',')
+df.columns = df.columns.str.lower().str.replace(" ", "_")
+
+df['выручка'] = df.groupby(['покупательская_активность', 'тип_товара'])['выручка'].transform(
+    lambda x: x.fillna(x.median()))
+
+
+def iqr(data, column):
+    Q1 = data[column].quantile(0.25)
+    Q3 = data[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 3 * IQR
+    upper_bound = Q3 + 3 * IQR
+    outliers = data[(data[column] > upper_bound)]
+    data.loc[outliers.index, column] = data.groupby(['покупательская_активность', 'тип_товара'])[column].transform(
+        'median')
+    return data
+
+
+df = iqr(df, 'выручка')
+
+group1 = df[(df['тип_товара'] == 'товары для себя') & (df['покупательская_активность'] == 'Снизилась')]
+group2 = df[(df['тип_товара'] == 'товары для себя') & (df['покупательская_активность'] == 'Прежний уровень')]
+
+
+def norm(data, column):
+    stat, p = shapiro(data[column])
+    return p > 0.05
+
+
+factors = ['история_продаж', 'неоплаченные_товары', 'выручка']
+
+results = [['показатель', 'р-уровень', 'метод расчёта р-уровня']]
+
+for factor in factors:
+    norm1 = norm(group1, factor)
+    norm2 = norm(group2, factor)
+
+    if norm1 and norm2:
+        stat, p = ttest_ind(group1[factor], group2[factor], equal_var=False)
+        method = 't-тест Стьюдента'
+    else:
+        stat, p = mannwhitneyu(group1[factor], group2[factor])
+        method = 'Манн-Уитни'
+
+    results.append([factor, float(round(p, 4)), method])
+
+print(results)
